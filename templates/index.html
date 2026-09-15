@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0B231E">
+    <title>Tic Tac Toe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --felt-deep: #0B231E;
+            --felt: #123A31;
+            --felt-hi: #17463B;
+            --rule: #2C6354;
+            --ivory: #F0E9DA;
+            --amber: #E9A83C;
+            --muted: #8FB3A8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            background: var(--felt-deep);
+            color: var(--ivory);
+            font-family: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(16px, 3vh, 28px);
+            padding: 20px;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ---- status ---- */
+        .status {
+            text-align: center;
+            min-height: 62px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .turn {
+            font-family: "Fraunces", Georgia, serif;
+            font-weight: 600;
+            font-size: clamp(20px, 5.5vw, 26px);
+            line-height: 1.2;
+            margin: 0;
+        }
+
+        .you {
+            font-size: 14px;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        .you .chip {
+            color: var(--ivory);
+            font-weight: 500;
+        }
+
+        body[data-you="O"] .you .chip {
+            color: var(--amber);
+        }
+
+        /* ---- board ---- */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: clamp(5px, 1.4vmin, 10px);
+            padding: clamp(5px, 1.4vmin, 10px);
+            background: var(--rule);
+            border-radius: 16px;
+            width: min(88vw, 52vh, 400px);
+            aspect-ratio: 1 / 1;
+        }
+
+        .cell {
+            border: 0;
+            margin: 0;
+            padding: 0;
+            border-radius: 9px;
+            background: var(--felt);
+            color: var(--ivory);
+            font-family: "Fraunces", Georgia, serif;
+            font-weight: 400;
+            font-size: clamp(38px, 15vmin, 76px);
+            line-height: 1;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: background .12s ease, transform .12s ease;
+        }
+
+        .cell[data-mark="O"] {
+            color: var(--amber);
+        }
+
+        .cell[data-mark=""]:hover:not(:disabled) {
+            background: var(--felt-hi);
+        }
+
+        .cell:active:not(:disabled) {
+            transform: scale(.97);
+        }
+
+        .cell:disabled {
+            cursor: default;
+        }
+
+        .cell:focus-visible {
+            outline: 3px solid var(--amber);
+            outline-offset: -3px;
+        }
+
+        .cell.win {
+            background: var(--felt-hi);
+            box-shadow: inset 0 0 0 2px var(--amber);
+        }
+
+        @media (hover: none) {
+            .cell[data-mark=""]:hover:not(:disabled) {
+                background: var(--felt);
+            }
+        }
+
+        /* ---- result banner ---- */
+        .result {
+            min-height: 26px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--amber);
+            margin: 0;
+        }
+
+        /* ---- controls ---- */
+        .controls {
+            display: flex;
+            gap: 10px;
+            width: min(88vw, 52vh, 400px);
+        }
+
+        .btn {
+            flex: 1;
+            min-height: 50px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--rule);
+            background: transparent;
+            color: var(--ivory);
+            font: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+            text-decoration: none;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            border-color: var(--amber);
+        }
+
+        .btn:focus-visible {
+            outline: 3px solid var(--amber);
+            outline-offset: 3px;
+        }
+
+        .btn-strong {
+            background: var(--amber);
+            border-color: var(--amber);
+            color: #14241A;
+        }
+
+        .offline {
+            display: none;
+            font-size: 14px;
+            color: var(--amber);
+            margin: 0;
+        }
+
+        body.is-offline .offline {
+            display: block;
+        }
+
+        body.is-offline .board {
+            opacity: .5;
+        }
+    </style>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+
+<body>
+    <div class="status">
+        <p class="turn" id="turn" aria-live="polite">Your move</p>
+        <p class="you" id="you"></p>
+    </div>
+
+    <div class="board" id="board" role="grid" aria-label="Tic tac toe board">
+        {% for cell in board %}
+        <button class="cell" id="cell-{{ loop.index0 }}" data-pos="{{ loop.index0 }}" data-mark="">{{ cell }}</button>
+        {% endfor %}
+    </div>
+
+    <p class="result" id="response" aria-live="polite"></p>
+    <p class="offline">Connection lost. Trying to reconnect…</p>
+
+    <div class="controls">
+        <a class="btn" href="/">Leave game</a>
+        <a class="btn btn-strong" href="/restart/{{ room_id }}">New game</a>
+    </div>
+
+    <script>
+        const ROOM_ID = '{{ room_id }}';
+        const PLAYER_ID = '{{ player_id }}';
+        const YOU = '{{ symbol | default("") }}'.trim();   // optional: "X" or "O" if the server sends it
+
+        const LINES = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        const cells = Array.from(document.querySelectorAll(".cell"));
+        const turnEl = document.getElementById("turn");
+        const youEl = document.getElementById("you");
+        const responseEl = document.getElementById("response");
+
+        let gameOver = false;
+
+        const socket = io();
+
+        socket.on("connect", function () {
+            document.body.classList.remove("is-offline");
+            socket.emit("join", { room_id: ROOM_ID });
+        });
+
+        socket.on("disconnect", function () {
+            document.body.classList.add("is-offline");
+        });
+
+        socket.on("update_board", function (data) {
+            render(data.board, data.response ? data.response.msg : "");
+        });
+
+        cells.forEach(function (cell, index) {
+            cell.addEventListener("click", function () {
+                if (gameOver || cell.dataset.mark !== "") return;
+                socket.emit("move", {
+                    room_id: ROOM_ID,
+                    pos: String(index),
+                    player_id: PLAYER_ID
+                });
+            });
+        });
+
+        function render(board, message) {
+            const marks = board.map(function (c) { return (c || "").trim().toUpperCase(); });
+
+            marks.forEach(function (mark, i) {
+                const cell = cells[i];
+                cell.textContent = mark;
+                cell.dataset.mark = mark;
+                cell.classList.remove("win");
+                cell.setAttribute("aria-label",
+                    "Row " + (Math.floor(i / 3) + 1) + ", column " + (i % 3 + 1) + ": " + (mark || "empty"));
+            });
+
+            const winLine = LINES.find(function (l) {
+                return marks[l[0]] && marks[l[0]] === marks[l[1]] && marks[l[1]] === marks[l[2]];
+            });
+            const boardFull = marks.every(function (m) { return m !== ""; });
+
+            gameOver = Boolean(winLine) || boardFull || Boolean(message);
+            if (winLine) winLine.forEach(function (i) { cells[i].classList.add("win"); });
+
+            cells.forEach(function (cell) {
+                cell.disabled = gameOver || cell.dataset.mark !== "";
+            });
+
+            responseEl.textContent = message || "";
+
+            // X always moves first, so the counts tell us whose turn it is.
+            const xs = marks.filter(function (m) { return m === "X"; }).length;
+            const os = marks.filter(function (m) { return m === "O"; }).length;
+            const turn = xs <= os ? "X" : "O";
+
+            if (winLine) {
+                const winner = marks[winLine[0]];
+                turnEl.textContent = YOU ? (winner === YOU ? "You win" : "You lose") : winner + " wins";
+            } else if (boardFull) {
+                turnEl.textContent = "It's a draw";
+            } else if (gameOver) {
+                turnEl.textContent = "Game over";
+            } else if (YOU) {
+                turnEl.textContent = turn === YOU ? "Your move" : "Waiting for your opponent";
+            } else {
+                turnEl.textContent = turn + " to move";
+            }
+        }
+
+        if (YOU) {
+            document.body.dataset.you = YOU;
+            youEl.innerHTML = 'You are playing as <span class="chip">' + YOU + '</span>';
+        }
+
+        // Paint whatever the server rendered into the page on first load.
+        render(cells.map(function (c) { return c.textContent; }), "");
+    </script>
+</body>
+
+</html>

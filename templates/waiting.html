@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0B231E">
+    <title>Waiting for an opponent · Tic Tac Toe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --felt-deep: #0B231E;
+            --felt: #123A31;
+            --rule: #2C6354;
+            --ivory: #F0E9DA;
+            --amber: #E9A83C;
+            --muted: #8FB3A8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            background: var(--felt-deep);
+            color: var(--ivory);
+            font-family: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+            text-align: center;
+        }
+
+        .wrap {
+            width: 100%;
+            max-width: 340px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .seats {
+            display: flex;
+            gap: 14px;
+        }
+
+        .seat {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-family: "Fraunces", Georgia, serif;
+            font-size: 28px;
+        }
+
+        .seat.taken {
+            background: var(--felt);
+            border: 2px solid var(--amber);
+            color: var(--amber);
+        }
+
+        .seat.empty {
+            border: 2px dashed var(--rule);
+            color: var(--rule);
+            animation: breathe 2s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+
+            0%,
+            100% {
+                opacity: .45;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .seat.empty {
+                animation: none;
+                opacity: .7;
+            }
+        }
+
+        h1 {
+            font-family: "Fraunces", Georgia, serif;
+            font-weight: 600;
+            font-size: clamp(22px, 6.5vw, 28px);
+            line-height: 1.25;
+            margin: 0;
+        }
+
+        .sub {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .count {
+            color: var(--amber);
+            font-weight: 500;
+        }
+
+        .room {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .room b {
+            color: var(--ivory);
+            font-weight: 500;
+        }
+
+        .btn {
+            display: inline-block;
+            min-height: 48px;
+            padding: 13px 24px;
+            border-radius: 12px;
+            border: 1px solid var(--rule);
+            background: transparent;
+            color: var(--ivory);
+            font: inherit;
+            font-size: 15px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            border-color: var(--amber);
+        }
+
+        .btn:focus-visible {
+            outline: 3px solid var(--amber);
+            outline-offset: 3px;
+        }
+
+        .offline {
+            display: none;
+            font-size: 14px;
+            color: var(--amber);
+        }
+
+        body.is-offline .offline {
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+
+<body>
+    <main class="wrap">
+        <div class="seats">
+            <div class="seat taken" aria-hidden="true">X</div>
+            <div class="seat empty" aria-hidden="true">O</div>
+        </div>
+
+        <div>
+            <h1>Waiting for an opponent</h1>
+            <p class="sub"><span class="count">1 of 2</span> players ready. The game starts the moment someone joins.
+            </p>
+        </div>
+
+        <p class="room">Room <b>{{ room_id }}</b></p>
+        <p class="offline">Connection lost. Trying to reconnect…</p>
+
+        <a class="btn" href="/">Cancel and go back</a>
+    </main>
+
+    <script>
+        const ROOM_ID = '{{ room_id }}';
+        const socket = io();
+
+        socket.on("connect", function () {
+            document.body.classList.remove("is-offline");
+            socket.emit("join", { room_id: ROOM_ID });
+        });
+
+        socket.on("disconnect", function () {
+            document.body.classList.add("is-offline");
+        });
+
+        socket.on("ready_game", function (data) {
+            if (ROOM_ID == data.room_id) {
+                window.location.href = "/game/" + ROOM_ID;
+            }
+        });
+    </script>
+</body>
+
+</html>
