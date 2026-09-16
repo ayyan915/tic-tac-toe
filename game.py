@@ -18,6 +18,7 @@ class Game():
                 (0, 4, 8),
                 (2, 4, 6)
         ]
+        
 
     def move_position(self, position):
         if 0<= position < 9:

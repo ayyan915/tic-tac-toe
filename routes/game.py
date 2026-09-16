@@ -90,6 +90,8 @@ def restart(room_id):
         games[room_id].reset_board()
         games[room_id].current_player = "O" if games[room_id].current_player == "X" else "X"
         socketio.emit("update_board", {"board": games[room_id].board, "response": None}, to=room_id)
+        if games[room_id].current_player == "O" and games[room_id].bot_enable:
+            games[room_id].bot_move()
     return redirect(f"/game/{room_id}")
 
 
