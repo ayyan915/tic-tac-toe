@@ -189,6 +189,7 @@
 
     <script>
         const ROOM_ID = '{{ room_id }}';
+        const TIMEOUT_MS = ({{ timeout_seconds | default(10) }} + 1) * 1000; // +1s buffer past the server's own check
         const socket = io();
 
         socket.on("connect", function () {
@@ -205,6 +206,11 @@
                 window.location.href = "/game/" + ROOM_ID;
             }
         });
+
+        // If no opponent joins in time, reload so the server can fall back to the bot.
+        setTimeout(function () {
+            window.location.reload();
+        }, TIMEOUT_MS);
     </script>
 </body>
 
